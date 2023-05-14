@@ -1,20 +1,39 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.shanu.secure.cysecurity">
 
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE " />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <uses-permission android:name="android.permission.PACKAGE_ADDED" />
+    <uses-permission android:name="android.permission.PACKAGE_REMOVED" />
+
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+
+    <uses-permission android:name="android.permission.VIBRATE"/>
+
+
    <application
         android:label="cysecurity"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
         <service android:name="flutter.overlay.window.flutter_overlay_window.OverlayService" android:exported="false" />
+        <service android:name="flutter.overlay.window.flutter_overlay_window_apk.OverlayService" android:exported="false" />
+<!--        <service android:name=".overlay.OverlayApkService" android:exported="false" />-->
+        <service android:name=".Service.AppInstallService" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -41,5 +60,31 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+
+       <receiver android:name="com.shounakmulay.telephony.sms.IncomingSmsReceiver"
+           android:permission="android.permission.BROADCAST_SMS" android:exported="true">
+           <intent-filter>
+               <action android:name="android.provider.Telephony.SMS_RECEIVED"/>
+           </intent-filter>
+       </receiver>
+
+
+       <receiver android:name="com.shanu.secure.cysecurity.AppInstallReceiver" android:exported="true" android:enabled="true">
+           <intent-filter>
+               <action android:name="android.intent.action.PACKAGE_ADDED" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:scheme="package" />
+           </intent-filter>
+       </receiver>
+
+       <receiver android:name="com.shanu.secure.cysecurity.AppUninstallReceiver" android:exported="true" android:enabled="true">
+           <intent-filter>
+               <action android:name="android.intent.action.PACKAGE_FULLY_REMOVED" />
+               <category android:name="android.intent.category.DEFAULT" />
+               <data android:scheme="package" />
+           </intent-filter>
+       </receiver>
+
     </application>
 </manifest>

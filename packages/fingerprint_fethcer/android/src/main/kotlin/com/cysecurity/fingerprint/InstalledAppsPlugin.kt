@@ -74,9 +74,11 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
                 val includeSystemApps = call.argument("exclude_system_apps") ?: true
                 val withIcon = call.argument("with_icon") ?: false
                 val packageNamePrefix: String = call.argument("package_name_prefix") ?: ""
+                val withSha256 = call.argument("with_sha256") ?: false
+                val withMd5 = call.argument("with_md5") ?: false
                 Thread {
                     val apps: List<Map<String, Any?>> =
-                        getInstalledApps(includeSystemApps, withIcon, packageNamePrefix)
+                        getInstalledApps(includeSystemApps, withIcon, packageNamePrefix,withSha256,withMd5)
                     result.success(apps)
                 }.start()
             }
@@ -97,13 +99,18 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
                 val packageName: String = call.argument("package_name") ?: ""
                 result.success(getAppInfo(getPackageManager(context!!), packageName))
             }
+            "getAppFile" -> {
+                val packageName: String = call.argument("package_name") ?: ""
+                result.success(getAppFile(getPackageManager(context!!), packageName))
+            }
             "isSystemApp" -> {
                 val packageName: String = call.argument("package_name") ?: ""
                 result.success(isSystemApp(getPackageManager(context!!), packageName))
             }
             "getSha" -> {
                 val packageName: String = call.argument("package_name") ?: ""
-                result.success(getSha(getPackageManager(context!!), packageName))
+                val instanceType: String = call.argument("instance_type") ?: ""
+                result.success(getSha(getPackageManager(context!!), packageName,instanceType))
             }
             else -> result.notImplemented()
         }
@@ -112,20 +119,21 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
     private fun getInstalledApps(
         excludeSystemApps: Boolean,
         withIcon: Boolean,
-        packageNamePrefix: String
+        packageNamePrefix: String,
+        withSha256: Boolean,
+        withMd5: Boolean,
     ): List<Map<String, Any?>> {
         val packageManager = getPackageManager(context!!)
         var installedApps = packageManager.getInstalledApplications(0)
         if (excludeSystemApps)
-            installedApps =
-                installedApps.filter { app -> !isSystemApp(packageManager, app.packageName) }
+            installedApps = installedApps.filter { app -> !isSystemApp(packageManager, app.packageName) }
         if (packageNamePrefix.isNotEmpty())
             installedApps = installedApps.filter { app ->
                 app.packageName.startsWith(
                     packageNamePrefix.lowercase(ENGLISH)
                 )
             }
-        return installedApps.map { app -> convertAppToMap(packageManager, app, withIcon) }
+        return installedApps.map { app -> convertAppToMap(packageManager, app, withIcon,withSha256,withMd5) }
     }
 
     private fun startApp(packageName: String?): Boolean {
@@ -168,8 +176,8 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
         else convertAppToMap(packageManager, installedApps[0], true)
     }
 
-    private fun getHash(filePath: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
+    private fun getHash(filePath: String, instanceType: String): String {
+        val digest = MessageDigest.getInstance(instanceType)
         val fis = FileInputStream(filePath)
         val byteArray = ByteArray(1024)
         var bytesCount = 0
@@ -185,9 +193,8 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
         return sb.toString()
     }
 
-
 //    private fun getSha(packageManager: PackageManager, packageName: String) {
-    private fun getSha(packageManager: PackageManager, packageName: String): String {
+    private fun getSha(packageManager: PackageManager, packageName: String, instanceType: String): String {
         try {
             var installedApps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
             installedApps = installedApps.filter { app -> app.packageName == packageName }
@@ -197,7 +204,7 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
 //                    var file = File(installedApps[0].publicSourceDir);
 //                }
 //            }
-            val hash = getHash(installedApps[0].publicSourceDir)
+            val hash = getHash(installedApps[0].publicSourceDir,instanceType)
             return hash.toString();
         } catch (e: Exception) {
             return "Error";
@@ -217,6 +224,38 @@ class InstalledAppsPlugin() : MethodCallHandler, FlutterPlugin, ActivityAware {
 //            }
 //        return "No Fingerprint";
     //End Fingerprint Function
+//        }
+    }
+
+    private fun getAppFile(packageManager: PackageManager, packageName: String): String {
+        try {
+            var installedApps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+            installedApps = installedApps.filter { app -> app.packageName == packageName }
+//            println(installedApps[0].publicSourceDir);
+//            if (packagelist.size > 0) {
+//                for (i in 0 until packagelist.size) {
+//                    var file = File(installedApps[0].publicSourceDir);
+//                }
+//            }
+            return installedApps[0].publicSourceDir;
+        } catch (e: Exception) {
+            return "Error";
+            e.printStackTrace()
+        }
+//        println("Package: " + packageName)
+        // Firngerprint Function
+//        val sigs: Array<Signature> = packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo.getApkContentsSigners()
+////        for (sig in sigs) {
+//            val cert: ByteArray = sigs.get(0).toByteArray()
+//            var sha = byte2hex(computeHash(cert, "sha256"))
+//            if(sha != null) {
+////                println(
+////                    "Signature hashcode1 : " + sha.trim().replace(" ", ":").toUpperCase(Locale.US)
+////                )
+//                return sha.trim().replace(" ", ":").toUpperCase(Locale.US);
+//            }
+//        return "No Fingerprint";
+        //End Fingerprint Function
 //        }
     }
 

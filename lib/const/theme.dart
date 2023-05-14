@@ -1,11 +1,17 @@
 import 'package:cysecurity/const/colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class MyThemes {
 
   static final ThemeData mainTheme = ThemeData(
     primaryColor: AppColor.primary,
-    appBarTheme: const AppBarTheme(color: AppColor.primary),
+    appBarTheme: const AppBarTheme(color: AppColor.primary,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        systemNavigationBarColor: AppColor.background,
+      )
+    ),
+    fontFamily: 'Proxima',
     textSelectionTheme: const TextSelectionThemeData(
       selectionColor: Colors.grey,
       cursorColor: Color(0xff171d49),

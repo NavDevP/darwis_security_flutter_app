@@ -6,6 +6,8 @@ class AppInfo {
   String? packageName;
   String? versionName;
   int? versionCode;
+  String? sha256;
+  String? md5;
 
   AppInfo(
     this.name,
@@ -13,6 +15,8 @@ class AppInfo {
     this.packageName,
     this.versionName,
     this.versionCode,
+    this.sha256,
+    this.md5,
   );
 
   factory AppInfo.create(dynamic data) {
@@ -22,6 +26,8 @@ class AppInfo {
       data["package_name"],
       data["version_name"],
       data["version_code"],
+      data["sha256"],
+      data["md5"],
     );
   }
 

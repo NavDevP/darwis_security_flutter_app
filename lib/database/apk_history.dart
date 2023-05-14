@@ -1,3 +1,4 @@
+import 'package:cysecurity/database/onboarding_permission.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
@@ -82,6 +83,12 @@ class ApkHistoryProvider {
       return ApkHistory.fromMap(maps.first);
     }
     return null;
+  }
+
+  Future<int?> getScannedCount() async{
+    final result = await db.rawQuery('SELECT COUNT(*) FROM $tableTodo');
+    final count = Sqflite.firstIntValue(result);
+    return count;
   }
 
   Future<List?> getChunkedData() async {

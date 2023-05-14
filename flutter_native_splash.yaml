@@ -1,0 +1,5 @@
+flutter_native_splash:
+  color: "#F2F1F7"
+  image: assets/images/logo/darwis.png
+  android: true
+  ios: true

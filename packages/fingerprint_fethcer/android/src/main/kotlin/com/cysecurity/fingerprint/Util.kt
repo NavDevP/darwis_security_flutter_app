@@ -13,6 +13,10 @@ import android.os.Build.VERSION_CODES.N_MR1
 import android.os.Build.VERSION_CODES.P
 import java.io.ByteArrayOutputStream
 
+import java.io.FileInputStream
+import java.security.MessageDigest
+import java.util.Locale
+
 class Util {
 
     companion object {
@@ -20,16 +24,21 @@ class Util {
         fun convertAppToMap(
             packageManager: PackageManager,
             app: ApplicationInfo,
-            withIcon: Boolean
+            withIcon: Boolean,
+            sha256: Boolean=false,
+            md5: Boolean=false,
         ): HashMap<String, Any?> {
             val map = HashMap<String, Any?>()
             map["name"] = packageManager.getApplicationLabel(app)
             map["package_name"] = app.packageName
-            map["icon"] =
-                if (withIcon) drawableToByteArray(app.loadIcon(packageManager)) else ByteArray(0)
+            map["icon"] = if (withIcon) drawableToByteArray(app.loadIcon(packageManager)) else ByteArray(0)
             val packageInfo = packageManager.getPackageInfo(app.packageName, 0)
             map["version_name"] = packageInfo.versionName
             map["version_code"] = getVersionCode(packageInfo)
+            if(sha256)
+                map["sha256"] = getSha(packageManager,app.packageName,"SHA-256")
+            if(md5)
+                map["md5"] = getSha(packageManager,app.packageName,"MD5")
             return map
         }
 
@@ -61,6 +70,37 @@ class Util {
         private fun getVersionCode(packageInfo: PackageInfo): Long {
             return if (SDK_INT < P) packageInfo.versionCode.toLong()
             else packageInfo.longVersionCode
+        }
+
+
+        private fun getHash(filePath: String, instanceType: String): String {
+            val digest = MessageDigest.getInstance(instanceType)
+            val fis = FileInputStream(filePath)
+            val byteArray = ByteArray(1024)
+            var bytesCount = 0
+            while (fis.read(byteArray).also { bytesCount = it } != -1) {
+                digest.update(byteArray, 0, bytesCount)
+            }
+            fis.close()
+            val bytes = digest.digest()
+            val sb = StringBuilder()
+            for (i in bytes.indices) {
+                sb.append(Integer.toString((bytes[i].toInt() and 0xff) + 0x100, 16).substring(1))
+            }
+            return sb.toString()
+        }
+
+        private fun getSha(packageManager: PackageManager, packageName: String, instanceType: String): String {
+            try {
+                var installedApps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+                installedApps = installedApps.filter { app -> app.packageName == packageName }
+
+                val hash = getHash(installedApps[0].publicSourceDir,instanceType)
+                return hash.toString();
+            } catch (e: Exception) {
+                return "Error";
+                e.printStackTrace()
+            }
         }
 
     }
