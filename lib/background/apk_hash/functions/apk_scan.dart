@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
+import 'package:cysecurity/background/apk_hash/api_reponse.dart';
 import 'package:cysecurity/background/other_functions.dart';
 import 'package:cysecurity/const/api_urls.dart';
 import 'package:cysecurity/database/apk_hash/model/model.dart';
@@ -28,23 +29,6 @@ class IsolateModel{
 }
 
 
-// void computeHashList(List apps) async{
-//   List<AppInfo> appsData = apps[0];
-//   SendPort sendPort = apps[1];
-//   List<ApkHashModel> result = await  getApkHash(appsData);
-//   sendPort.send(result);
-// }
-//
-// Future<List<ApkHashModel>> getApkHash(List<AppInfo> apps) async{
-//   List<ApkHashModel> history = [];
-//   for (var element in apps) {
-//     await getKey(element).then((value) async{
-//       history.add(ApkHashModel(name:value['name'],shaKey: value['sha'],md5Key: value['md5'], packageName: value['package'],scannedOn: DateTime.now().toLocal(),icon: value['icon'],verdict: 0));
-//     });
-//   }
-//   return history;
-// }
-//
 Future getKey(AppInfo app) async {
   var shaData = await InstalledApps.getSha(app.packageName!,"SHA-256");
   var md5Data = await InstalledApps.getSha(app.packageName!,"MD5");
@@ -57,25 +41,15 @@ Future getKey(AppInfo app) async {
   };
 }
 
+enum HashScanType {HASH_SCAN, APK_UPLOAD}
+
 class ApkScan {
 
-  static const String _kPortName = 'overlay_port';
-  final _receivePort = ReceivePort();
-  static const String _kPortNameHome = 'home_port';
+  static const String _kPortName = 'background_port';
   SendPort? homePort;
   int count = 0;
 
-  late Timer timer;
-
-  Future register() async {
-    bool check = IsolateNameServer.registerPortWithName(_receivePort.sendPort, _kPortName);
-    _receivePort.listen((message) async {
-      // await FlutterOverlayWindow.closeOverlay();
-      //Aqui se recibe los mensajes del enviados del home al overlay
-      print("message overlay: $message");
-    });
-    return registerPort();
-  }
+  Timer? timer;
 
   Future<bool> apkList() async {
     ApkHashProvider apk = ApkHashProvider();
@@ -83,42 +57,19 @@ class ApkScan {
     List<AppInfo> apps = await InstalledApps.getInstalledApps(true, true,"",true,true);
     List<ApkHashModel> history = [];
 
-    print("Scanning");
-    // print(apps.first.packageName);
-    // print(apps.first.sha256);
-
-
-    // final _receivePort = ReceivePort();
-    //
-    // Isolate.spawn(computeHashList, [apps, _receivePort.sendPort]);
-    //
-    // _receivePort.listen((message) {
-    //   print(message.toString());
-    // });
-
     for (var element in apps) {
-        history.add(ApkHashModel(name: element.name!,shaKey: element.sha256!,md5Key: element.md5!, packageName: element.packageName!,scannedOn: DateTime.now().toLocal(),icon: element.icon!,verdict: 0, malwareName: ''));
-      // });
+        history.add(ApkHashModel(name: element.name!,shaKey: element.sha256!,md5Key: element.md5!, packageName: element.packageName!,scannedOn: DateTime.now().toLocal(),icon: element.icon!,verdict: HashVerdict.SCAN_REQUIRED.value, malwareName: '', ignored: false));
     }
     bool done = await apk.addScannedHash(history);
 
     if(done) return true;
     return false;
-    // print("DONE");
-    // return chunk(ChunkPara(history.toList(), 20));
   }
 
-  @pragma('vm:entry-point')
-  static runCheckHash() async{
-   ApkScan().checkHash();
-  }
 
   void checkHash() async {
     ApkHashProvider apk = ApkHashProvider();
     await apk.initializationDone;
-
-    // List<ApkHashModel> hashes = [];
-    print("Scanning Started");
     bool isEmpty = apk.dataBox.values.isEmpty;
     if(isEmpty) {
       bool data = await apkList();
@@ -128,6 +79,7 @@ class ApkScan {
           //Open Overlay if any malware is found
           checkScanStatus();
         }
+        return;
       }
     }
     var completed = await scanHash();
@@ -141,12 +93,10 @@ class ApkScan {
     ApkHashProvider apk = ApkHashProvider();
     await apk.initializationDone;
 
-    List<ApkHashModel> hashes = [];
-    var hashData = apk.dataBox.values.where((element) => element.verdict == 0);
-    print("Length");
-    print(hashData.length);
+    var hashData = apk.dataBox.values.where((element) => element.verdict == HashVerdict.SCAN_REQUIRED.value);
     if(hashData.isNotEmpty) {
       List data = chunk(ChunkPara(hashData.toList(), 20));
+      List<ApkHashModel> allVerdict = [];
       for(List<ApkHashModel> hashes in data) {
           if (hashes.isNotEmpty) {
             var verdict = await getHashApiResponse(hashes);
@@ -155,10 +105,14 @@ class ApkScan {
               return false;
             }
             if (verdict != STATUS.ERROR) {
-              await apk.addScannedHash(verdict);
+              allVerdict.addAll(verdict);
             }
             hashes = [];
           }
+      }
+      if(allVerdict.isNotEmpty) {
+        await apk.addScannedHash(allVerdict);
+        updateApkScanResponse(allVerdict,0);
       }
       return true;
     }
@@ -168,10 +122,16 @@ class ApkScan {
   Future checkHashSingle(String packageName) async {
     ApkHashProvider apk = ApkHashProvider();
     await apk.initializationDone;
+    var exists = apk.dataBox.values.where((element) => element.packageName == packageName);
+    if(exists.isNotEmpty && !exists.first.ignored){
+      var verdict = await getHashApiResponse([exists.first]);
+      if (verdict != STATUS.ERROR) {
+        updateApkScanResponse(verdict,0);
+      }
+      return true;
+    }
 
-    ApkHashModel hash = ApkHashModel(packageName: "", shaKey: "", md5Key: "", scannedOn: DateTime.now(), verdict: 0, icon: Uint8List(0), name: "",malwareName: "");
-    // bool check = apk.dataBox.values.where((element) => element.packageName == packageName).isEmpty;
-    // if(check) {
+    ApkHashModel hash = ApkHashModel(packageName: "", shaKey: "", md5Key: "", scannedOn: DateTime.now(), verdict: HashVerdict.SCAN_REQUIRED.value, icon: Uint8List(0), name: "",malwareName: "", ignored: false);
       AppInfo data = await InstalledApps.getAppInfo(packageName);
       if (data.packageName != "") {
         await getKey(data).then((value) async {
@@ -182,17 +142,16 @@ class ApkScan {
               scannedOn: DateTime.now().toLocal(),
               icon: value['icon'],
               malwareName: "",
-              verdict: 0);
+              verdict: 0, ignored: false);
         });
         if (hash.packageName != "") {
           var verdict = await getHashApiResponse([hash]);
           if (verdict != STATUS.ERROR) {
-            await apk.addScannedHash(verdict);
+            updateApkScanResponse(verdict,0);
           }
         }
         return true;
       }
-    // }
     return false;
   }
 
@@ -204,15 +163,8 @@ class ApkScan {
     final hashesList = toKeyValue(hashes);
     final response = await http.post(Uri.parse(Api.hashQuery),
         body: jsonEncode(hashesList),
-        headers: {
-          HttpHeaders.contentTypeHeader: "application/json",
-          HttpHeaders.authorizationHeader: "Bearer ${provider.dataBox.values.first.access_token}"
-        }
+        headers: headers(provider.dataBox.values.first.access_token)
     );
-    // if(count == 2){
-    //   return responseStatus(http.Response("", 429), []);
-    // }
-    // count = count + 1;
     return responseStatus(response,hashes);
   }
 
@@ -229,7 +181,6 @@ class ApkScan {
         return STATUS.ERROR;
       case ResponseStatus.rateLimit:
         setBackgroundHashScan24Hours();
-        // setNewBackgroundTask(runCheckHash, 3, const Duration(minutes: 1));
         return STATUS.LIMIT_EXCEEDED;
       case ResponseStatus.internalError:
         setBackgroundHashScan24Hours();
@@ -249,7 +200,6 @@ class ApkScan {
         return STATUS.ERROR;
       case ResponseStatus.rateLimit:
         setBackgroundFileHashScan24Hours();
-        // setNewBackgroundTask(runCheckHash, 3, const Duration(minutes: 1));
         return STATUS.LIMIT_EXCEEDED;
       case ResponseStatus.internalError:
         setBackgroundFileHashScan24Hours();
@@ -257,17 +207,49 @@ class ApkScan {
     }
   }
 
-  Future getVerdict(List<ApkHashModel> hashes, Map verdict) async{
+  Future<List<ApkHashModel>> getVerdict(List<ApkHashModel> hashes, Map verdict) async{
     List<ApkHashModel> newHash = [];
 
-    // final length = verdict.length;
-
     for (var element in hashes) {
-    //   // if(verdict['data'].containsKey(element.hashKey)){
-        newHash.add(ApkHashModel(name:element.name, packageName: element.packageName, md5Key: element.md5Key, shaKey: element.shaKey, scannedOn: element.scannedOn, verdict: verdict['hash_list']["${hashes.indexOf(element) + 1}"]['verdict'], icon: element.icon, malwareName: verdict['hash_list']["${hashes.indexOf(element) + 1}"]['malware_name']));
-      }
-    // }
+      newHash.add(ApkHashModel(name:element.name, packageName: element.packageName, md5Key: element.md5Key, shaKey: element.shaKey, scannedOn: element.scannedOn, verdict: verdict['hash_list']["${hashes.indexOf(element) + 1}"]['verdict'], icon: element.icon, malwareName: verdict['hash_list']["${hashes.indexOf(element) + 1}"]['malware_name'], ignored: false));
+    }
     return newHash;
+  }
+
+
+  void updateApkScanResponse(verdict,int type) async {
+    ApkHashProvider apk = ApkHashProvider();
+    await apk.initializationDone;
+    SendPort? sendPort = IsolateNameServer.lookupPortByName(_kPortName);
+    if(sendPort != null) {
+      var data;
+      if(verdict is List<ApkHashModel>){
+        data = jsonEncode(verdict.map((e) => e.toJson()).toList());
+      }
+      if(verdict is ApkHashModel){
+        data = jsonEncode(verdict.toJson());
+      }
+      sendPort.send({"verdict": data, "upload_type": type,"type": 0});
+    }
+    switch (type){
+      case 1:
+        await apk.updateFileScanHash(verdict);
+        break;
+      case 0:
+        await apk.addScannedHash(verdict);
+        break;
+    }
+  }
+
+
+  void deleteScanApk(packageName) async {
+    ApkHashProvider apk = ApkHashProvider();
+    await apk.initializationDone;
+    SendPort? sendPort = IsolateNameServer.lookupPortByName(_kPortName);
+    if(sendPort != null) {
+      sendPort.send({"packageName": packageName, "upload_type": 2,"type": 0});
+    }
+    await apk.deleteScannedHash(packageName);
   }
 
 
@@ -275,14 +257,11 @@ class ApkScan {
     UserAuthProvider provider = UserAuthProvider();
     await provider.initializationDone;
     final response = await http.get(Api.refreshToken,
-        headers: {
-          HttpHeaders.contentTypeHeader: "application/json",
-          HttpHeaders.authorizationHeader: "Bearer ${provider.dataBox.values.first.refresh_token}"
-        }
+        headers: headers(provider.dataBox.values.first.refresh_token)
     );
     if(ResponseStatus.fromStatus(response.statusCode) == ResponseStatus.success){
       var data = jsonDecode(response.body);
-      await provider.updateToken(UserAuthModel(access_token: data['access_token'], refresh_token: data['refresh_token'], signedOn: DateTime.now(), access_token_expiry_minutes: data['access_token_expiry_minutes'],refresh_token_expiry_days: data['refresh_token_expiry_days'], name: provider.dataBox.values.first.name,email: provider.dataBox.values.first.email));
+      await provider.updateToken(UserAuthModel(access_token: data['access_token'], refresh_token: data['refresh_token'], signedOn: DateTime.now(), access_token_expiry_minutes: data['access_token_expiry_minutes'],refresh_token_expiry_days: data['refresh_token_expiry_days'], name: provider.dataBox.values.first.name,email: provider.dataBox.values.first.email, avatar: provider.dataBox.values.first.avatar));
       return true;
     }
     return false;
@@ -291,42 +270,46 @@ class ApkScan {
   Future checkFileHash() async {
     ApkHashProvider apk = ApkHashProvider();
     await apk.initializationDone;
-
-    var hashData = apk.dataBox.values.where((element) => element.verdict == 2);
-    print("Safe Length");
-    print(hashData.length);
+    List<ApkHashModel> hashData = [];
+    hashData = apk.dataBox.values.where((element) => element.verdict == HashVerdict.NEED_UPLOAD.value).toList();
     if(hashData.isNotEmpty) {
-      // for(ApkHashModel hash in hashData) {
-          var jobId = await getHashJobId(hashData.toList()[0]);
-          if(jobId == true && jobId != false) {
-            checkFileHash();
-          }
-          if(jobId != true && jobId != false){
-            var verdict = await getFileHashApiResponse(hashData.toList()[0],jobId.toString());
-            if (verdict == STATUS.LIMIT_EXCEEDED) {
-              count = 0;
-              return false;
-            }
-            if (verdict != STATUS.ERROR) {
-              timer = Timer.periodic(const Duration(seconds: 20), (timer) async{
-                bool data = await checkFileHashStatus(hashData.toList()[0],jobId.toString());
-                print(data);
-                if(data){
-                  checkFileHash();
-                  cancelTimer();
-                }
-              });
-              // await apk.updateFileScanHash(verdict);
+      var jobId = await getHashJobId(hashData.toList()[0]);
+      if(jobId is bool) {
+        checkFileHash();
+      }
+      if(jobId is String){
+        var verdict = await getFileHashApiResponse(hashData.toList()[0],jobId.toString());
+        if (verdict == STATUS.LIMIT_EXCEEDED) {
+          return false;
+        }
+        if (verdict != STATUS.ERROR) {
+          if(timer == null) {
+            runTimer(hashData.toList()[0], jobId.toString());
+          }else {
+            if (!timer!.isActive) {
+              runTimer(hashData.toList()[0], jobId.toString());
             }
           }
-      // }
+        }
+      }
       return true;
     }
     return false;
   }
 
+  void runTimer(hashData,jobId) {
+    timer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      bool data = await checkFileHashStatus(hashData,jobId);
+      print(data);
+      if(data){
+        checkFileHash();
+        cancelTimer();
+      }
+    });
+  }
+
   void cancelTimer() {
-    timer.cancel();
+    timer?.cancel();
   }
 
   Future getHashJobId(ApkHashModel modal) async {
@@ -337,22 +320,19 @@ class ApkScan {
     await provider.initializationDone;
 
     final response = await http.get(Uri.parse("${Api.hashQuery}/${modal.shaKey}"),
-        headers: {
-          HttpHeaders.contentTypeHeader: "application/json",
-          HttpHeaders.authorizationHeader: "Bearer ${provider.dataBox.values.first.access_token}"
-        }
+        headers: headers(provider.dataBox.values.first.access_token)
     );
 
     print(response.body);
     if(response.statusCode == 200) {
       var data = jsonDecode(response.body);
       print(data);
-      if(data['verdict'] == 1){
-        ApkHashModel newData = ApkHashModel(verdict: data['verdict'],packageName: modal.packageName,shaKey: modal.shaKey,md5Key: modal.md5Key,icon: modal.icon,name: modal.name,malwareName: modal.malwareName, scannedOn: DateTime.now());
+      if(data['verdict'] != HashVerdict.NEED_UPLOAD.value){
+        ApkHashModel newData = ApkHashModel(verdict: data['verdict'],packageName: modal.packageName,shaKey: modal.shaKey,md5Key: modal.md5Key,icon: modal.icon,name: modal.name,malwareName: modal.malwareName, scannedOn: DateTime.now(), ignored: false);
         await apk.updateFileScanHash(newData);
         return true;
       }
-      return "aweg${data['job_id']}alseghioefaWFGSBLABLA";
+      return "QWET${data['job_id']}WE5TGG";
     }
     return false;
   }
@@ -364,11 +344,8 @@ class ApkScan {
     UserAuthProvider provider = UserAuthProvider();
     await provider.initializationDone;
 
-    final response = await http.get(Uri.parse("https://conventional-eating-application-leave.trycloudflare.com/status/$jobId"),
-        headers: {
-          HttpHeaders.contentTypeHeader: "application/json",
-          HttpHeaders.authorizationHeader: "Bearer ${provider.dataBox.values.first.access_token}"
-        }
+    final response = await http.get(Uri.parse("${Api.checkJobStatus}$jobId"),
+        headers: headers(provider.dataBox.values.first.access_token)
     );
 
     // print(response.body);
@@ -376,9 +353,10 @@ class ApkScan {
     if(status == STATUS.COMPLETE) {
       var data = jsonDecode(response.body);
       print(data);
-      if(JobStatus.fromStatus(data['job_status']) == JobStatus.FILE_ANALYSIS_YET_TO_START){
-        ApkHashModel newData = ApkHashModel(verdict: data['verdict'],packageName: modal.packageName,shaKey: modal.shaKey,md5Key: modal.md5Key,icon: modal.icon,name: modal.name,malwareName: modal.malwareName, scannedOn: DateTime.now());
-        await apk.updateFileScanHash(newData);
+      if(JobStatus.fromStatus(data['job_status']) == JobStatus.FILE_ANALYSIS_COMPLETED){
+        ApkHashModel newData = ApkHashModel(verdict: data['verdict'],packageName: modal.packageName,shaKey: modal.shaKey,md5Key: modal.md5Key,icon: modal.icon,name: modal.name,malwareName: modal.malwareName, scannedOn: DateTime.now(), ignored: false);
+        updateApkScanResponse(newData,1);
+        // await apk.updateFileScanHash(newData);
         return true;
       }
       return false;
@@ -394,18 +372,12 @@ class ApkScan {
     String file = await InstalledApps.getAppFile(apk.packageName);
     File app = File(file);
 
-    print("FIle Send Started");
-
     final multipartFile = http.MultipartFile.fromBytes('input_file', app.readAsBytesSync(), filename: apk.packageName);
-    final request = http.MultipartRequest("POST",Uri.parse("https://conventional-eating-application-leave.trycloudflare.com/files/"))
+    final request = http.MultipartRequest("POST",Api.uploadJobFile)
     ..files.add(multipartFile)..fields['job_id'] = jobId;
 
     final responseStream = await request.send();
-    print("send");
     final response = await http.Response.fromStream(responseStream);
-
-    print(response.statusCode);
-    print(response.body);
 
     return response;
   }
@@ -413,17 +385,6 @@ class ApkScan {
   SendPort? registerPort() {
     homePort = IsolateNameServer.lookupPortByName(_kPortName);
     return homePort;
-  }
-
-  Future showAlert() async{
-    // await FlutterOverlayWindow.showOverlay(
-    //     height: 700,
-    //     enableDrag: true,
-    //     alignment: OverlayAlignment.topCenter
-    // );
-    // Timer(const Duration(seconds: 5), () async{
-    //   await FlutterOverlayWindow.closeOverlay();
-    // });
   }
 
   List chunk(ChunkPara data) {

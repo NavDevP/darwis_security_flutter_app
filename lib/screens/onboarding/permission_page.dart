@@ -14,16 +14,17 @@ class PermissionPage extends StatefulWidget {
 
 class _PermissionPageState extends State<PermissionPage> {
 
-  bool smsRequested=false,systemRequested = false;
+  bool smsRequested=false,systemRequested = false,phoneRequested=false;
 
   OnBoardingPermissionProvider permissionProvider = OnBoardingPermissionProvider();
 
   Future getPermissions(context) async{
     var sms = Permission.sms;
     if (await sms.isGranted) {
-      await systemPermission(context);
+      smsRequested = true;
+      setState(() {});
+      await callPermissions(context);
     }else {
-      await permissionProvider.open();
       var check = await Permission.sms.request();
       if (check.isDenied) {
         _showMyDialog(context);
@@ -31,7 +32,29 @@ class _PermissionPageState extends State<PermissionPage> {
       if (check.isGranted) {
         smsRequested = true;
         setState(() {});
-        Timer(const Duration(seconds: 1),() async => await systemPermission(context));
+        Timer(const Duration(seconds: 1),() async => await callPermissions(context));
+      }
+    }
+  }
+
+  Future callPermissions(context) async{
+    var phone = Permission.phone;
+    if (await phone.isGranted) {
+      phoneRequested = true;
+      setState(() {});
+      print("Already Granted");
+      await systemPermission(context);
+    }else {
+      var check = await Permission.phone.request();
+      if (check.isDenied) {
+        print("Desnied");
+        _showMyDialog(context);
+      }
+      if (check.isGranted) {
+        print("Granted");
+        phoneRequested = true;
+        setState(() {});
+        Timer(const Duration(milliseconds: 500),() async => await systemPermission(context));
       }
     }
   }
@@ -77,7 +100,7 @@ class _PermissionPageState extends State<PermissionPage> {
             TextButton(
               child: const Text('Okay'),
               onPressed: () {
-                Timer(const Duration(seconds: 1),() async => await getPermissions(context));
+                Timer(const Duration(milliseconds: 500),() async => await getPermissions(context));
                 Navigator.of(context).pop();
               },
             ),
@@ -169,6 +192,50 @@ class _PermissionPageState extends State<PermissionPage> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Icon(Icons.call,size: 25,color: AppColor.primary),
+                    const SizedBox(width: 20),
+                    Expanded(child: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Text("Call Permission",style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold)),
+                            phoneRequested ? const SizedBox(width: 5):const SizedBox(),
+                            phoneRequested ? const Icon(Icons.verified,color: AppColor.primary,size: 18):const SizedBox()
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                        const Text("To alert user whenever he's on spam call",style: TextStyle(fontSize: 13,color: Colors.black54)),
+                      ],
+                    )),
+                    // GestureDetector(child: Container(
+                    //     padding: const EdgeInsets.symmetric(vertical: 8,horizontal: 20),
+                    //     decoration: BoxDecoration(
+                    //         color: AppColor.primary,
+                    //         borderRadius: BorderRadius.circular(5)
+                    //     ),
+                    //     child: const Text("Allow",style: TextStyle(color: Colors.white,fontSize: 16)
+                    //     )),onTap: () async{
+                    //   var check = await Permission.sms.request();
+                    // }),
+                  ],
+                ),
+              ),
+              SizedBox(
+                  width: MediaQuery.of(context).size.width / 1.7,
+                  child: const Divider(thickness: 1)),
+              const SizedBox(height: 5),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(vertical: 10,horizontal: 20),
+                decoration: const BoxDecoration(
+                  // color: Colors.white
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const Icon(Icons.desktop_windows,size: 25,color: AppColor.primary),
                     const SizedBox(width: 20),
                     Expanded(child: Column(
@@ -199,7 +266,7 @@ class _PermissionPageState extends State<PermissionPage> {
                     // }),
                   ],
                 ),
-              )
+              ),
             ],
           ),
           const SizedBox(height: 40),

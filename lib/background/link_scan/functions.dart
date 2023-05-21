@@ -1,17 +1,22 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:isolate';
+import 'dart:ui';
 
+import 'package:cysecurity/background/link_scan/api_response.dart';
 import 'package:cysecurity/background/other_functions.dart';
 import 'package:cysecurity/const/api_urls.dart';
-import 'package:cysecurity/database/apk_hash/model/model.dart';
+import 'package:cysecurity/const/constants.dart';
 import 'package:cysecurity/database/apk_hash/provider.dart';
 import 'package:cysecurity/database/link_scan/model/model.dart';
 import 'package:cysecurity/database/link_scan/provider.dart';
 import 'package:cysecurity/database/user_auth/provider.dart';
-import 'package:flutter_overlay_window/flutter_overlay_window.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 
 class LinksScanFunctions {
+
+  static const String _kPortName = 'background_port';
+  SendPort? homePort;
 
 
   List<String> getUrls(List<LinkScanModel> list) {
@@ -21,24 +26,32 @@ class LinksScanFunctions {
   Future scanLinks() async {
     LinkScanProvider link = LinkScanProvider();
     await link.initializationDone;
-    List<LinkScanModel> links = link.dataBox.values.where((element) => element.verdict == 0).toList();
+    List<LinkScanModel> links = link.dataBox.values.where((element) => element.verdict == LinkVerdict.SCAN_REQUIRED.value).toList();
     if(links.isNotEmpty) {
-      print("Scanning links");
       List data = chunk(links, 20);
 
       for (List<LinkScanModel> val in data) {
-        // print(val);
         var verdict = await getLinkScanResponse(val);
         if(verdict == STATUS.LIMIT_EXCEEDED){
           return false;
         }
         if (verdict != STATUS.ERROR) {
-          await link.updateScannedLink(verdict);
+          updateLinkScanResponse(verdict);
         }
       }
       return true;
     }
     return false;
+  }
+
+  void updateLinkScanResponse(List verdict) {
+    SendPort? sendPort = IsolateNameServer.lookupPortByName(_kPortName);
+    sendPort?.send({"verdict":jsonEncode(verdict.map((e) => e.toJson()).toList()),"update":true,"type": 1});
+  }
+
+  void addLinkScanResponse(List<LinkScanModel> verdict) {
+    SendPort? sendPort = IsolateNameServer.lookupPortByName(_kPortName);
+    sendPort?.send({"verdict":jsonEncode(verdict.map((e) => e.toJson()).toList()),"update":false,"type": 1});
   }
 
   Future scanLinksOneTime(List<LinkScanModel> links) async {
@@ -50,6 +63,7 @@ class LinksScanFunctions {
       var verdict = await getLinkScanResponse(val);
 
       if (verdict != STATUS.ERROR) {
+        addLinkScanResponse(verdict);
         await link.addScannedLink(verdict);
       }
 
@@ -64,10 +78,7 @@ class LinksScanFunctions {
 
     final response = await http.post(Api.linkScan,body: jsonEncode({
       "urls": getUrls(links)
-    }), headers: {
-      HttpHeaders.contentTypeHeader: "application/json",
-      HttpHeaders.authorizationHeader: "Bearer ${provider.dataBox.values.first.access_token}"
-    });
+    }), headers: headers(provider.dataBox.values.first.access_token));
     if(response.statusCode == 200){
       return responseStatus(response, links);
     }
@@ -84,7 +95,6 @@ class LinksScanFunctions {
       case ResponseStatus.invalidInput:
         return STATUS.ERROR;
       case ResponseStatus.rateLimit:
-        // setNewBackgroundTask(scanBack(links), 1, const Duration(hours:24));
         return STATUS.LIMIT_EXCEEDED;
       case ResponseStatus.internalError:
         return STATUS.ERROR;
@@ -111,12 +121,21 @@ class LinksScanFunctions {
 
 
   Future openLinkOverLay() async{
-    await FlutterOverlayOtpWindow.showOverlay(height: 1130,width: WindowSize.matchParent,alignment: OverlayAlignment.topCenter,enableDrag: false);
-    //
-    // FlutterOverlayWindow.overlayListener.listen((_) async{
-    //   FlutterOverlayWindow.disposeOverlayListener();
-    //   await FlutterOverlayWindow.closeOverlay();
-    // });
+    final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+    flutterLocalNotificationsPlugin.show(
+      notificationId+2,
+      'Spam Link (Darwis)',
+      'Spam links detected, click to check',
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          "${notificationChannelId}Link",
+          'Darwis',
+          ongoing: false,
+        ),
+      ),
+    );
   }
 
   List chunk(List<LinkScanModel> data, int length) {

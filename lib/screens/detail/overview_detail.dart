@@ -1,4 +1,5 @@
 import 'package:cysecurity/background/apk_hash/api_reponse.dart';
+import 'package:cysecurity/background/link_scan/api_response.dart';
 import 'package:cysecurity/const/colors.dart';
 import 'package:cysecurity/database/apk_hash/model/model.dart';
 import 'package:cysecurity/database/apk_hash/provider.dart';
@@ -11,6 +12,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class OverViewDetail extends StatefulWidget {
+  const OverViewDetail({super.key});
+
   @override
   State<StatefulWidget> createState() => _OverViewDetail();
 }
@@ -42,24 +45,24 @@ class _OverViewDetail extends State<OverViewDetail> {
               //   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               // ),
               actions: [
-                Stack(children: [
-                  Container(
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.notifications_none,
-                          color: AppColor.primary)),
-                  Container(
-                    alignment: Alignment.centerRight,
-                    margin: const EdgeInsets.only(bottom: 14, left: 13),
-                    child: Container(
-                      width: 10,
-                      decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(20)),
-                      height: 10,
-                    ),
-                  ),
-                ]),
-                const SizedBox(width: 15),
+                // Stack(children: [
+                //   Container(
+                //       alignment: Alignment.center,
+                //       child: const Icon(Icons.notifications_none,
+                //           color: AppColor.primary)),
+                //   Container(
+                //     alignment: Alignment.centerRight,
+                //     margin: const EdgeInsets.only(bottom: 14, left: 13),
+                //     child: Container(
+                //       width: 10,
+                //       decoration: BoxDecoration(
+                //           color: Colors.red,
+                //           borderRadius: BorderRadius.circular(20)),
+                //       height: 10,
+                //     ),
+                //   ),
+                // ]),
+                // const SizedBox(width: 15),
               ],
               title: const Text("Report Overview",
                   style: TextStyle(
@@ -102,8 +105,8 @@ class _OverViewDetail extends State<OverViewDetail> {
                   ),
                   ValueListenableBuilder(
                     builder: (context,Box<ApkHashModel> box,_) {
-                    List<ApkHashModel> total = box.values.where((element) => element.verdict != 0 && element.verdict != 2).toList();
-                    List<ApkHashModel> malware = box.values.where((element) => element.verdict == 3).toList();
+                    List<ApkHashModel> total = box.values.where((element) => element.verdict != HashVerdict.SCAN_REQUIRED.value && element.verdict != HashVerdict.NEED_UPLOAD.value && !element.ignored).toList();
+                    List<ApkHashModel> malware = box.values.where((element) => element.verdict == HashVerdict.MALWARE.value && !element.ignored).toList();
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       setState(() {
                         apkTotalResults = total.length;
@@ -196,15 +199,15 @@ class _OverViewDetail extends State<OverViewDetail> {
                   const SizedBox(height: 10),
                   ValueListenableBuilder(
                     builder: (context,Box<LinkScanModel> box,_) {
-                      List<LinkScanModel> total = box.values.where((element) => element.verdict != 0).toList();
-                      List<LinkScanModel> malware = box.values.where((element) => element.verdict == 2).toList();
+                      List<LinkScanModel> total = box.values.where((element) => element.verdict != LinkVerdict.SCAN_REQUIRED.value).toList();
+                      List<LinkScanModel> malware = box.values.where((element) => element.verdict == LinkVerdict.SPAM.value).toList();
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         setState(() {
                           linkScanResults = total.length;
                           linkMalwareResults = malware.length;
                         });
                       });
-                      if(total.isNotEmpty) {
+                      if(malware.isNotEmpty) {
                         return Container(
                         margin: const EdgeInsets.only(
                           top: 15,

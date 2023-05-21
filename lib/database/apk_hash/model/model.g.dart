@@ -25,13 +25,14 @@ class ApkHashModelAdapter extends TypeAdapter<ApkHashModel> {
       icon: fields[4] as Uint8List,
       name: fields[6] as String,
       malwareName: fields[7] as String,
+      ignored: fields[8] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, ApkHashModel obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.packageName)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class ApkHashModelAdapter extends TypeAdapter<ApkHashModel> {
       ..writeByte(6)
       ..write(obj.name)
       ..writeByte(7)
-      ..write(obj.malwareName);
+      ..write(obj.malwareName)
+      ..writeByte(8)
+      ..write(obj.ignored);
   }
 
   @override

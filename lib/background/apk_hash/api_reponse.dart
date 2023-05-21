@@ -1,24 +1,11 @@
-abstract class Verdict {
-  // properties
-  String malware;
-  int verdict;
 
-  // constructor
-  Verdict(this.malware, this.verdict);
+enum HashVerdict {
+  SCAN_REQUIRED(-1),
+  NEED_UPLOAD(0),
+  WHITE_LIST(1),
+  SAFE(2),
+  MALWARE(3);
 
-  // abstract method
-  void run();
-}
-
-// mixin CanRun is only used by class that extends Animal
-mixin VerdictResponse on Verdict {
-  // implementation of abstract method
-  @override
-  void run() => print('$malware is verdict $verdict');
-}
-
-class ApkHashResponse extends Verdict with VerdictResponse{
-
-  ApkHashResponse(String malware, int verdict): super(malware, verdict);
-
+  const HashVerdict(this.value);
+  final int value;
 }

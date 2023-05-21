@@ -1,10 +1,13 @@
 
+import 'package:cysecurity/background/apk_hash/api_reponse.dart';
+import 'package:cysecurity/background/link_scan/api_response.dart';
 import 'package:cysecurity/database/apk_hash/model/model.dart';
 import 'package:cysecurity/database/apk_hash/provider.dart';
 import 'package:cysecurity/database/link_scan/model/model.dart';
 import 'package:cysecurity/database/link_scan/provider.dart';
 import 'package:cysecurity/database/otp_scan/model/model.dart';
 import 'package:cysecurity/database/otp_scan/provider.dart';
+import 'package:cysecurity/database/user_auth/provider.dart';
 import 'package:cysecurity/screens/detail/apk_detail.dart';
 import 'package:cysecurity/screens/detail/link_detail.dart';
 import 'package:cysecurity/screens/detail/overview_detail.dart';
@@ -21,7 +24,7 @@ Widget dashboardStatus(width) {
             valueListenable: Hive.box<ApkHashModel>(provider.getBoxName()).listenable(),
             builder: (context, Box<ApkHashModel> items, _) {
 
-            var error = items.values.where((element) => element.verdict == 3).isNotEmpty;
+            var error = items.values.where((element) => element.verdict == HashVerdict.MALWARE.value).isNotEmpty;
             // var warning = items.values.where((element) => element.verdict == 2).isNotEmpty;
             if(items.values.isEmpty){
               return AnimatedContainer(
@@ -151,7 +154,7 @@ Widget dashboardStatus(width) {
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600)),
                         const SizedBox(height: 5),
-                        Text("Last Scanned: ${(DateTime.now().minute - items.getAt(0)!.scannedOn.minute) > 0 ? "${DateTime.now().minute - items.getAt(0)!.scannedOn.minute} min's ago":"Just now"}",
+                        Text("Last Scanned: ${getTimeScanned(items)}",
                             style: const TextStyle(
                                 color: Colors.white70,
                                 fontSize: 14,
@@ -269,17 +272,36 @@ Widget dashboardStatus(width) {
                               fontSize: 18,
                               fontWeight: FontWeight.w600)),
                       const SizedBox(height: 5),
-                      Text("Last Scanned: ${items.values.isNotEmpty ? items.getAt(0)?.scannedOn.hour:''}",
-                          style: const TextStyle(
+                      StreamBuilder(stream: Stream.periodic(const Duration(seconds: 1)),
+                          builder: (context, snapshot) {
+                            return Text("Last Scanned: ${getTimeScanned(items)}",
+                              style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 14,
-                              fontWeight: FontWeight.w600))
+                              fontWeight: FontWeight.w600));
+                      })
                     ],
                   )
                 ],
               ),
             );
         });
+}
+
+String getTimeScanned(Box<ApkHashModel> items) {
+  if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inSeconds < 60){
+    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} sec ago";
+  }
+  if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes < 60){
+    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} min's ago";
+  }
+  if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inHours < 24){
+    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} hour ago";
+  }
+  if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inDays < 60){
+    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} day ago";
+  }
+  return "Just Now";
 }
 
 Widget dashboardOverview(width,context) {
@@ -352,20 +374,33 @@ Widget dashboardOverview(width,context) {
                               )
                             ],
                           ),
-                          Row(
-                            children: [
-                              ValueListenableBuilder(
-                                  valueListenable:
-                                      ApkHashProvider().getBox().listenable(),
-                                  builder:
-                                      (context, Box<ApkHashModel> items, _) {
-                                    return Text("${items.values.where((element) => element.verdict != 0 && element.verdict != 2).length}",
+                          ValueListenableBuilder(
+                            valueListenable: Hive.box<ApkHashModel>("apk_hash").listenable(),
+                            builder: (context, Box<ApkHashModel> items, _) {
+                              int malware = items.values.where((element) => element.verdict == HashVerdict.MALWARE.value && !element.ignored).length;
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text("${items.values.where((element) => element.verdict != HashVerdict.NEED_UPLOAD.value && element.verdict != HashVerdict.SCAN_REQUIRED.value && !element.ignored).length}",
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 28)),
+                                  malware > 0 ? Container(
+                                    padding: const EdgeInsets.all(5),
+                                    margin: const EdgeInsets.only(right: 10),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: Colors.red,width: 3),
+                                      shape: BoxShape.circle
+                                    ),
+                                    child: Text(malware.toString(),
                                         style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 28));
-                                  })
-                            ],
-                          )
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.red,
+                                            fontSize: 13)),
+                                  ):const SizedBox(),
+                                ],
+                              );
+                            })
                         ],
                       )))),onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ApkDetail()))),
           SizedBox(
@@ -486,19 +521,34 @@ Widget dashboardOverview(width,context) {
                               )
                             ],
                           ),
-                          GestureDetector(child: Row(
-                            children: [
-                              ValueListenableBuilder(
-                                  valueListenable: LinkScanProvider().getBox().listenable(),
-                                  builder: (context, Box<LinkScanModel> items, _) {
-                                    return Text(
-                                        "${items.values.where((element) => element.verdict != 0).length}",
-                                        style: const TextStyle(
+                          ValueListenableBuilder(
+                            valueListenable: LinkScanProvider().getBox().listenable(),
+                            builder: (context, Box<LinkScanModel> items, _) {
+                              var malware = items.values.where((element) => element.verdict == LinkVerdict.SPAM.value).length;
+                              return Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "${items.values.where((element) => element.verdict != HashVerdict.SCAN_REQUIRED.value).length}",
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.bold, fontSize: 28),
-                                    );
-                                  })
-                            ],
-                          ),onTap: () async { await provider2.dataBox.clear();})
+                                  ),
+                                  malware > 0 ? Container(
+                                    padding: const EdgeInsets.all(5),
+                                    margin: const EdgeInsets.only(right: 10),
+                                    decoration: BoxDecoration(
+                                        border: Border.all(color: Colors.red,width: 3),
+                                        shape: BoxShape.circle
+                                    ),
+                                    child: Text(malware.toString(),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.red,
+                                            fontSize: 13)),
+                                  ):const SizedBox(),
+                                ],
+                              );
+                            })
                         ],
                       )))),onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LinkDetail()))),
         ],
@@ -507,173 +557,49 @@ Widget dashboardOverview(width,context) {
   );
 }
 
-Widget dashboardActions(width) {
-  int i =1;
-  return Column(
-    children: [
-      Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text("Actions",
-                  style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18)),
-            ],
-          )),
-      const SizedBox(height: 10),
-      SizedBox(
-          height: 40,
-          child: ListView.builder(
-              itemCount: 3,
-              scrollDirection: Axis.horizontal,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.only(right: 15),
-                  decoration: BoxDecoration(
-                      color: AppColor.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColor.primary)),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  child: Center(
-                      child: Text(
-                          index == 1
-                              ? "High"
-                              : (index == 2 ? "Moderate" : "Critical"),
-                          style: const TextStyle(fontWeight: FontWeight.bold))),
-                );
-              })),
-      const SizedBox(height: 20),
-      SizedBox(
-          height: 140,
-          child: ValueListenableBuilder(
-              valueListenable: ApkHashProvider().getBox().listenable(),
-              builder: (context, Box<ApkHashModel> items, _) {
-                return ListView.builder(
-                    itemCount: items.length,
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (context, index) {
-                      if(items.getAt(index)?.verdict != 1) {
-                        return SizedBox(
-                            width: width / 1.5,
-                            child: Card(
-                                semanticContainer: true,
-                                clipBehavior: Clip.antiAliasWithSaveLayer,
-                                elevation: 1,
-                                color: Colors.white,
-                                shadowColor: Colors.black26,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20.0),
-                                ),
-                                child: Container(
-                                    padding: const EdgeInsets.all(15),
-                                    child: Stack(
-                                      children: [
-                                        Column(
-                                          mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                          crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                          children: [
-                                            Column(
-                                              crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                              children: [
-                                                Text("${index + 1}",
-                                                    style: const TextStyle(
-                                                        color: Colors.black87,
-                                                        fontWeight:
-                                                        FontWeight.bold,
-                                                        fontSize: 25)),
-                                                const SizedBox(height: 5),
-                                                Text(
-                                                    "${items
-                                                        .getAt(index)?.name}",
-                                                    style: const TextStyle(
-                                                        color: Colors.black87,
-                                                        fontWeight:
-                                                        FontWeight.bold,
-                                                        fontSize: 16),
-                                                    overflow:
-                                                    TextOverflow.ellipsis),
-                                                const SizedBox(height: 5),
-                                                const Text("Apk has threat",
-                                                    style: TextStyle(
-                                                        color: Colors.black45,
-                                                        fontWeight:
-                                                        FontWeight.bold,
-                                                        fontSize: 14))
-                                              ],
-                                            ),
-                                            Row(
-                                              crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                              children: const [
-                                                Icon(Icons.access_time,
-                                                    size: 18,
-                                                    color: Colors.black54),
-                                                SizedBox(width: 5),
-                                                Text("04:20",
-                                                    style: TextStyle(
-                                                        fontSize: 16,
-                                                        color: Colors.black54,
-                                                        fontWeight:
-                                                        FontWeight.w400)),
-                                                SizedBox(width: 20),
-                                                Icon(Icons.date_range,
-                                                    size: 18,
-                                                    color: Colors.black54),
-                                                SizedBox(width: 5),
-                                                Text("19 Feb",
-                                                    style: TextStyle(
-                                                        fontSize: 16,
-                                                        color: Colors.black54,
-                                                        fontWeight:
-                                                        FontWeight.w400))
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                        Container(
-                                            alignment: Alignment.topRight,
-                                            child: Container(
-                                              width: 60,
-                                              height: 25,
-                                              decoration: BoxDecoration(
-                                                  color: items
-                                                      .getAt(index)
-                                                      ?.verdict == 2
-                                                      ? Colors.orange
-                                                      : items
-                                                      .getAt(index)
-                                                      ?.verdict == 3 ? Colors
-                                                      .red : Colors.green,
-                                                  borderRadius:
-                                                  BorderRadius.circular(5)),
-                                              child: Center(
-                                                  child: Text(
-                                                      items
-                                                          .getAt(index)
-                                                          ?.verdict == 2
-                                                          ? 'High'
-                                                          : items
-                                                          .getAt(index)
-                                                          ?.verdict == 3
-                                                          ? 'Critical'
-                                                          : 'Safe',
-                                                      style: const TextStyle(
-                                                          color: Colors
-                                                              .white))),
-                                            ))
-                                      ],
-                                    ))));
+AppBar appBar() {
+  UserAuthProvider user = UserAuthProvider();
+  return AppBar(
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    actions: [
+      Stack(
+          children: [
+            Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                    border: Border.all(color: AppColor.primary),
+                    shape: BoxShape.circle,
+                    color: AppColor.primary.withOpacity(0.1)
+                ),
+                alignment: Alignment.center,
+                child: FutureBuilder(
+                    future: user.initializationDone,
+                    builder: (context, snapshot) {
+                      String image = user.dataBox.values.first.avatar;
+                      if(image.isNotEmpty){
+                        return Image.network(image,width: 20);
                       }
-                      return Container();
-                    });
-              })),
+                      return const Icon(Icons.person,color: AppColor.primary);
+                    },
+                )
+            ),
+            // Container(
+            //   alignment: Alignment.centerRight,
+            //  margin: const EdgeInsets.only(bottom: 14,left: 13),
+            //  child: Container(
+            //    width: 10,
+            //    decoration: BoxDecoration(
+            //        color: Colors.red,
+            //        borderRadius: BorderRadius.circular(20)
+            //    ),
+            //    height: 10,
+            //  ),
+            // ),
+          ]
+      ),
+      const SizedBox(width: 15),
     ],
+    title: Image.asset("assets/images/logo/darwis_header.png",width: 105),
   );
 }

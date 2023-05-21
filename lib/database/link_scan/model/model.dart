@@ -17,5 +17,14 @@ class LinkScanModel{
 
   LinkScanModel({required this.verdict, required this.message,required this.scannedOn, required this.link});
 
+  Map<String, dynamic> toJson(){
+    return {
+      "verdict": verdict,
+      "message": message,
+      "scannedOn": scannedOn.millisecondsSinceEpoch,
+      "link": link
+    };
+  }
+
 }
 

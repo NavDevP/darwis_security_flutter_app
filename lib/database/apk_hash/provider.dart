@@ -1,5 +1,6 @@
 import 'dart:collection';
 
+import 'package:cysecurity/background/apk_hash/api_reponse.dart';
 import 'package:cysecurity/database/apk_hash/model/model.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -34,6 +35,23 @@ class ApkHashProvider {
     print(dataBox.length);
   }
 
+  Future deleteScannedHash(String packageName) async{
+    int index = dataBox.values.toList().indexWhere((element) => element.packageName == packageName);
+    if(!index.isNegative) {
+      await dataBox.deleteAt(index);
+    }
+    return true;
+  }
+
+  Future ignoreScannedApk(ApkHashModel model) async{
+    int index = dataBox.values.toList().indexWhere((element) => element.packageName == model.packageName);
+    if(!index.isNegative) {
+      ApkHashModel newModel = ApkHashModel(packageName: model.packageName, shaKey: model.shaKey, md5Key: model.md5Key, scannedOn: model.scannedOn, verdict: model.verdict, icon: model.icon, name: model.name, malwareName: model.malwareName,ignored: true);
+      await dataBox.putAt(index, newModel);
+    }
+    return true;
+  }
+
   Future addScannedHash(List<ApkHashModel> hashes) async{
     for (var data in hashes){
       await dataBox.put(data.packageName,data);
@@ -51,15 +69,15 @@ class ApkHashProvider {
   // }
 
   bool hasMalware() {
-    return dataBox.values.where((element) => element.verdict == 3).isNotEmpty;
+    return dataBox.values.where((element) =>  element.verdict == HashVerdict.MALWARE.value).isNotEmpty;
   }
 
   bool hasMalwareSingle(String packageName) {
-    return dataBox.values.where((element) => element.packageName == packageName && element.verdict == 3).isNotEmpty;
+    return dataBox.values.where((element) => element.packageName == packageName && element.verdict == HashVerdict.MALWARE.value).isNotEmpty;
   }
 
-  bool hasSafe() {
-    return dataBox.values.where((element) => element.verdict == 2).isNotEmpty;
+  bool hasNeedUpload() {
+    return dataBox.values.where((element) => element.verdict == HashVerdict.NEED_UPLOAD.value).isNotEmpty;
   }
 
   // Future<List> getChunkedData() async {

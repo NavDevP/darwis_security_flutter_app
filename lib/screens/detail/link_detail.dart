@@ -37,28 +37,28 @@ class _LinkDetail extends State<LinkDetail> {
           //   icon: const Icon(Icons.menu,color: AppColor.primary),
           //   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           // ),
-          actions: [
-            Stack(
-                children: [
-                  Container(
-                      alignment: Alignment.center,
-                      child: const Icon(Icons.notifications_none,color: AppColor.primary)),
-                  Container(
-                    alignment: Alignment.centerRight,
-                    margin: const EdgeInsets.only(bottom: 14,left: 13),
-                    child: Container(
-                      width: 10,
-                      decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(20)
-                      ),
-                      height: 10,
-                    ),
-                  ),
-                ]
-            ),
-            const SizedBox(width: 15),
-          ],
+          // actions: [
+          //   Stack(
+          //       children: [
+          //         Container(
+          //             alignment: Alignment.center,
+          //             child: const Icon(Icons.notifications_none,color: AppColor.primary)),
+          //         Container(
+          //           alignment: Alignment.centerRight,
+          //           margin: const EdgeInsets.only(bottom: 14,left: 13),
+          //           child: Container(
+          //             width: 10,
+          //             decoration: BoxDecoration(
+          //                 color: Colors.red,
+          //                 borderRadius: BorderRadius.circular(20)
+          //             ),
+          //             height: 10,
+          //           ),
+          //         ),
+          //       ]
+          //   ),
+          //   const SizedBox(width: 15),
+          // ],
           title: const Text("Link Scan Results",style: TextStyle(color: Colors.black54,fontWeight: FontWeight.w600)),
         ),
         body: ValueListenableBuilder(

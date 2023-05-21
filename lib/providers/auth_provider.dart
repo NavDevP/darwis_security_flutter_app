@@ -56,18 +56,18 @@ class LoginNotifier extends StateNotifier<UserLogin> {
         var json = jsonDecode(response.body);
         loginUser(true, json, profile);
       }else{
-        loginUser(false,{},{});
+        loginUser(false,{},null);
       }
     }catch(error){
       state = const UserLogin(status: AUTH_STATUS.ERROR);
     }
   }
 
-  Future loginUser(bool loggedIn, data, profile) async{
-    if(loggedIn) {
+  Future loginUser(bool loggedIn, data, GoogleSignInAccount? profile) async{
+    if(loggedIn && profile != null) {
       UserAuthProvider provider = UserAuthProvider();
       await provider.initializationDone;
-      await provider.insertToken(UserAuthModel(access_token: data['access_token'], refresh_token: data['refresh_token'], signedOn: DateTime.now(), access_token_expiry_minutes: data['access_token_expiry_minutes'],refresh_token_expiry_days: data['refresh_token_expiry_days'], name: profile.displayName,email: profile.email));
+      await provider.insertToken(UserAuthModel(access_token: data['access_token'], refresh_token: data['refresh_token'], signedOn: DateTime.now(), access_token_expiry_minutes: data['access_token_expiry_minutes'],refresh_token_expiry_days: data['refresh_token_expiry_days'], name: profile.displayName!,email: profile.email,avatar: profile.photoUrl ?? ""));
       state = const UserLogin(status: AUTH_STATUS.AUTHENTICATED);
     }else{
       state = const UserLogin(status: AUTH_STATUS.ERROR);

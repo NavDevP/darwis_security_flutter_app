@@ -31,6 +31,11 @@ class UserAuthProvider {
     return true;
   }
 
+  Future<bool> deleteUser() async{
+    await dataBox.clear();
+    return true;
+  }
+
   Future<bool> updateToken(UserAuthModel data) async{
     await dataBox.putAt(0,data);
     return true;

@@ -13,6 +13,7 @@
 
     <uses-permission android:name="android.permission.RECEIVE_SMS"/>
     <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
@@ -25,9 +26,9 @@
 
 
    <application
-        android:label="cysecurity"
+        android:label="Darwis"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
 
         <service android:name="flutter.overlay.window.flutter_overlay_window.OverlayService" android:exported="false" />
         <service android:name="flutter.overlay.window.flutter_overlay_window_apk.OverlayService" android:exported="false" />

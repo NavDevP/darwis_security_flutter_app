@@ -22,8 +22,24 @@ class ApkHashModel{
   final String name;
   @HiveField(7)
   final String malwareName;
+  @HiveField(8)
+  final bool ignored;
 
-  ApkHashModel({required this.packageName, required this.shaKey, required this.md5Key, required this.scannedOn,required this.verdict,required this.icon, required this.name,required this.malwareName});
+  ApkHashModel({required this.packageName, required this.shaKey, required this.md5Key, required this.scannedOn,required this.verdict,required this.icon, required this.name,required this.malwareName,required this.ignored});
+
+  Map<String, dynamic> toJson(){
+    return {
+      "verdict": verdict,
+      "shaKey": shaKey,
+      "md5Key": md5Key,
+      "scannedOn": scannedOn.millisecondsSinceEpoch,
+      "icon": icon,
+      "name": name,
+      "malwareName": malwareName,
+      "packageName": packageName,
+      "ignored": ignored,
+    };
+  }
 
 }
 

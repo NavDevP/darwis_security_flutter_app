@@ -5,9 +5,11 @@ import 'package:cysecurity/const/colors.dart';
 import 'package:cysecurity/database/otp_scan/provider.dart';
 import 'package:cysecurity/database/user_auth/provider.dart';
 import 'package:cysecurity/main.dart';
+import 'package:cysecurity/screens/profile_setting/index.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../const/variables.dart';
 import '../../database/apk_hash/provider.dart';
 import 'widgets/dashboard_widgets.dart';
 import 'package:flutter/material.dart';
@@ -44,61 +46,104 @@ class _DashboadState extends State<Dashboard>{
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.0),
-          ),
+          backgroundColor: Colors.transparent,
           alignment: Alignment.center,
-          title: const Text("Report Link",textAlign: TextAlign.center,style: TextStyle(fontWeight: FontWeight.bold)),
           content: Container(
-            padding: const EdgeInsets.symmetric(vertical: 40,horizontal: 15),
-            child: TextFormField(
-                controller: linkTextController,
-                decoration: InputDecoration(
-                hintText: 'Enter your Link',
-                errorText: validateLink(linkTextController.text),
-              )),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 30,horizontal: 30),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Report",style: TextStyle(fontSize: 22,fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  const Text("Report any url here, if you think that url is spam and contain harmful contents",style: TextStyle(fontSize: 14)),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                      maxLines: 2,
+                      controller: linkTextController,
+                      decoration: InputDecoration(
+                        fillColor: Colors.black12,
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                          borderSide: BorderSide.none,
+                        ),
+                        hintText: 'Paste your link here!',
+                        hintStyle: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black54
+                        ),
+                        errorText: validateLink(linkTextController.text),
+                      )),
+                  const SizedBox(height: 20),
+                  MaterialButton(onPressed: () {
+                    Navigator.pop(context);
+                    showReportSubmitted();
+                  },
+                    minWidth: MediaQuery.of(context).size.width,
+                    color: AppColor.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    child: const Text("Submit Url",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
+                  )
+                ],
+              )
           ),
           contentPadding: EdgeInsets.zero,
-          actionsAlignment: MainAxisAlignment.center,
-          actionsOverflowButtonSpacing: 8.0,
-          actionsPadding: const EdgeInsets.all(0),
-          actions: [
-            Row(
-              children: [
-                Expanded(child: GestureDetector(
-                    onTap: (){
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                          color: Colors.red.shade600,
-                          borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20))
-                      ),
-                      child: const Text("Close",style: TextStyle(color: Colors.white,fontSize: 16)),
-                    ))),
-                Expanded(child: GestureDetector(
-                    onTap: (){
-                      Navigator.of(context).pop();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                          color: AppColor.primary,
-                          borderRadius: BorderRadius.only(bottomRight: Radius.circular(20))
-                      ),
-                      child: const Text("Submit",style: TextStyle(color: Colors.white,fontSize: 16)),
-                    )
-                )),
-              ],
-            )
-          ],
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
         );
       },
     );
   }
+
+  void showReportSubmitted(){
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.transparent,
+          alignment: Alignment.center,
+          content:   Container(
+            // height: 200,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 25,horizontal: 15),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                          color: Colors.red.shade100.withOpacity(0.5),
+                          shape: BoxShape.circle
+                      ),
+                      child: const Icon(Icons.report_gmailerrorred,size: 40,color: Colors.red)),
+                  const SizedBox(height: 20),
+                  const Text("Thank you for submitting a report",style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 15),
+                  const Text("We will review this url for any spam and harmful contents, thank you for you're supoprt.",style: TextStyle(fontSize: 14),textAlign: TextAlign.center),
+                  const SizedBox(height: 10),
+                  MaterialButton(onPressed: () => Navigator.pop(context),
+                    minWidth: MediaQuery.of(context).size.width,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: const Text("Close this window",style: TextStyle(color: AppColor.primary,fontWeight: FontWeight.bold)),
+                  )
+                ],
+              )
+          ),
+          contentPadding: EdgeInsets.zero,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+        );
+      },
+    );
+  }
+
 
   String? validateLink(String value) {
     if(value.isNotEmpty) {
@@ -218,73 +263,35 @@ class _DashboadState extends State<Dashboard>{
     var width = MediaQuery.of(context).size.width;
     return SafeArea(child: Scaffold(
       key: _scaffoldKey,
-      // drawer: Drawer(
-      //     width: 250,
-      //     child: Stack(
-      //       children: [
-      //         ListView(
-      //           children: [
-      //             DrawerHeader(
-      //               decoration: const BoxDecoration(
-      //                 color: AppColor.primary,
-      //               ),
-      //               child: ValueListenableBuilder(
-      //                 valueListenable: UserAuthProvider().getBox().listenable(),
-      //                 builder: (context, item,child){
-      //                   return Column(
-      //                     crossAxisAlignment: CrossAxisAlignment.start,
-      //                     mainAxisAlignment: MainAxisAlignment.end,
-      //                     children: <Widget>[
-      //                       Text("${item.getAt(0)?.name}",style: const TextStyle(color: Colors.white,fontSize: 20)),
-      //                       const SizedBox(height: 5),
-      //                       Text("${item.getAt(0)?.email}",style: const TextStyle(color: Colors.white70,fontSize: 14)),
-      //                       const SizedBox(height: 5),
-      //                     ],
-      //                   );
-      //                 },
-      //               )
-      //             ),
-      //             const ListTile(
-      //               minLeadingWidth: 10,
-      //               leading: Icon(Icons.logout),
-      //               title: Text("Logout"),
-      //             )
-      //           ],
-      //         ),
-      //         Container(
-      //           margin: const EdgeInsets.only(bottom: 10),
-      //           alignment: Alignment.bottomCenter,
-      //         child: const Text("Terms & Conditions"),
-      //         )
-      //       ],
-      //     ),
-      // ),
-      // drawerEdgeDragWidth: 100,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        // leading: IconButton(
-        //   icon: const Icon(Icons.menu,color: AppColor.primary),
-        //   onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        // ),
         actions: [
           Stack(
             children: [
-              Container(
+              GestureDetector(
+                  onTap: () => Navigator.of(context).push(createRoute(const ProfileSettings())),
+                  child: Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColor.primary),
+                  shape: BoxShape.circle,
+                  color: AppColor.primary.withOpacity(0.1)
+                ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.notifications_none,color: AppColor.primary)),
-              Container(
-                alignment: Alignment.centerRight,
-               margin: const EdgeInsets.only(bottom: 14,left: 13),
-               child: Container(
-                 width: 10,
-                 decoration: BoxDecoration(
-                     color: Colors.red,
-                     borderRadius: BorderRadius.circular(20)
-                 ),
-                 height: 10,
-               ),
-              ),
+                  child: const Icon(Icons.person,color: AppColor.primary))),
+              // Container(
+              //   alignment: Alignment.centerRight,
+              //  margin: const EdgeInsets.only(bottom: 14,left: 13),
+              //  child: Container(
+              //    width: 10,
+              //    decoration: BoxDecoration(
+              //        color: Colors.red,
+              //        borderRadius: BorderRadius.circular(20)
+              //    ),
+              //    height: 10,
+              //  ),
+              // ),
             ]
           ),
           const SizedBox(width: 15),
@@ -457,22 +464,22 @@ class _DashboadState extends State<Dashboard>{
                 //       ],
                 //     )
                 // ),
-                const SizedBox(height: 50),
+                const SizedBox(height: 20),
                 // dashboardActions(width),
               ],
             ),
           )),
-      bottomNavigationBar: BottomNavigationBar(
-        elevation: 10,
-        backgroundColor: AppColor.primary.withOpacity(0.8),
-        showUnselectedLabels: false,
-        showSelectedLabels: false,
-        selectedIconTheme: const IconThemeData(color: Colors.white),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled),label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.person),label: ""),
-        ],
-      ),
+      // bottomNavigationBar: BottomNavigationBar(
+      //   elevation: 10,
+      //   backgroundColor: AppColor.primary.withOpacity(0.8),
+      //   showUnselectedLabels: false,
+      //   showSelectedLabels: false,
+      //   selectedIconTheme: const IconThemeData(color: Colors.white),
+      //   items: const [
+      //     BottomNavigationBarItem(icon: Icon(Icons.home_filled),label: ""),
+      //     BottomNavigationBarItem(icon: Icon(Icons.person),label: ""),
+      //   ],
+      // ),
     ));
   }
 

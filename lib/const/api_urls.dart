@@ -1,11 +1,12 @@
 class Api {
-  static const String api = "http://192.168.29.124:3000/";
-  // static const String api = "http://192.168.1.8:3000/";
-  // static const String api = "https://anxiety-diet-generates-stephanie.trycloudflare.com/";
+  static const String api = "http://0.0.0.0:3000/"; //Add your Api Domain here
   static Uri googleLogin = Uri.parse("${api}ws-mobile/api/v1/auth");
   static Uri refreshToken = Uri.parse("${api}ws-mobile/api/v1/auth/refresh");
   static String hashQuery = "${api}ws-mobile/api/v1/hash/query";
-  static Uri jobHash = Uri.parse("${api}ws-mobile/api/v1/hash/jobs");
+  static Uri checkJobStatus = Uri.parse("${api}ws-mobile/api/v1/hash/jobs/");
+  static Uri uploadJobFile = Uri.parse("${api}ws-mobile/api/v1/hash/file/upload");
+  // static String checkJobStatus = "https://skin-budgets-everything-wider.trycloudflare.com/status/";
+  // static Uri uploadJobFile = Uri.parse("https://skin-budgets-everything-wider.trycloudflare.com/files/");
   static Uri linkScan = Uri.parse("${api}ws-mobile/api/v1/urls");
 
 }

@@ -24,13 +24,14 @@ class UserAuthModelAdapter extends TypeAdapter<UserAuthModel> {
       name: fields[5] as String,
       email: fields[6] as String,
       refresh_token_expiry_days: fields[4] as int,
+      avatar: fields[7] as String,
     );
   }
 
   @override
   void write(BinaryWriter writer, UserAuthModel obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.access_token)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class UserAuthModelAdapter extends TypeAdapter<UserAuthModel> {
       ..writeByte(5)
       ..write(obj.name)
       ..writeByte(6)
-      ..write(obj.email);
+      ..write(obj.email)
+      ..writeByte(7)
+      ..write(obj.avatar);
   }
 
   @override

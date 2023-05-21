@@ -20,7 +20,9 @@ class UserAuthModel{
   final String name;
   @HiveField(6)
   final String email;
+  @HiveField(7)
+  final String avatar;
 
-  UserAuthModel({required this.access_token, required this.refresh_token, required this.signedOn, required this.access_token_expiry_minutes, required this.name, required this.email, required this.refresh_token_expiry_days});
+  UserAuthModel({required this.access_token, required this.refresh_token, required this.signedOn, required this.access_token_expiry_minutes, required this.name, required this.email, required this.refresh_token_expiry_days, required this.avatar});
 
 }
