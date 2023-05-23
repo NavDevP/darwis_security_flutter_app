@@ -1,4 +1,4 @@
-package com.shanu.secure.cysecurity;
+package com.cysecurity.darwisaf;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,7 +9,7 @@ public class AppInstallReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         if (Intent.ACTION_PACKAGE_ADDED.equals(intent.getAction())) {
             String packageName = intent.getData().getSchemeSpecificPart();
-            Intent intent2 = new Intent("com.shanu.secure.cysecurity.AppInstallReceiver");
+            Intent intent2 = new Intent("com.cysecurity.darwisaf.AppInstallReceiver");
             intent2.putExtra("package", packageName);
             context.sendBroadcast(intent2);
         }

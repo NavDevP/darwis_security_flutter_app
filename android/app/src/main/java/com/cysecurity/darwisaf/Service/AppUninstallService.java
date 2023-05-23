@@ -1,11 +1,11 @@
-package com.shanu.secure.cysecurity.Service;
+package com.cysecurity.darwisaf.Service;
 
 import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
 
-import com.shanu.secure.cysecurity.AppUninstallReceiver;
+import com.cysecurity.darwisaf.AppUninstallReceiver;
 
 public class AppUninstallService extends Service {
     private AppUninstallReceiver receiver;

@@ -13,5 +13,5 @@ const hashScanFile = "hashScanFile";
 const checkAllVerdict = "checkAllVerdict";
 
 
-const apkInstallReceiver = "com.shanu.secure.cysecurity.AppInstallReceiver";
-const apkUninstallInstallReceiver = "com.shanu.secure.cysecurity.AppUninstallReceiver";
+const apkInstallReceiver = "com.cysecurity.darwisaf.AppInstallReceiver";
+const apkUninstallInstallReceiver = "com.cysecurity.darwisaf.AppUninstallReceiver";

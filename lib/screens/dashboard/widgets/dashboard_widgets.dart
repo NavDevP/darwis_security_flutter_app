@@ -179,60 +179,6 @@ Widget dashboardStatus(width) {
                 ),
               ),onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => OverViewDetail())))
             ]):
-            // warning ? Container(
-            //   width: width,
-            //   height: width * 0.37,
-            //   decoration: BoxDecoration(
-            //       borderRadius: BorderRadius.circular(20),
-            //       gradient: LinearGradient(
-            //         begin: Alignment.bottomLeft,
-            //         end: Alignment.topRight,
-            //         colors: [Colors.orange.shade700, Colors.orangeAccent],
-            //       )),
-            //   padding: const EdgeInsets.symmetric(vertical: 10),
-            //   child: Row(
-            //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            //     children: [
-            //       Container(
-            //         padding:
-            //         const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
-            //         decoration: BoxDecoration(
-            //             borderRadius: BorderRadius.circular(100),
-            //             color: Colors.white24),
-            //         child: Container(
-            //           padding: const EdgeInsets.all(10),
-            //             decoration: BoxDecoration(
-            //                 borderRadius: BorderRadius.circular(100),
-            //                 color: Colors.white),
-            //             child: const Icon(Icons.warning,
-            //                 size: 30, color: Colors.orange)),
-            //       ),
-            //       Column(
-            //         crossAxisAlignment: CrossAxisAlignment.start,
-            //         mainAxisAlignment: MainAxisAlignment.center,
-            //         children: [
-            //           const Text("Warning Apps",
-            //               style: TextStyle(
-            //                   color: Colors.white70,
-            //                   fontSize: 14,
-            //                   fontWeight: FontWeight.w500)),
-            //           const SizedBox(height: 5),
-            //           const Text("Some app's have issue's",
-            //               style: TextStyle(
-            //                   color: Colors.white,
-            //                   fontSize: 18,
-            //                   fontWeight: FontWeight.w600)),
-            //           const SizedBox(height: 5),
-            //           Text("Last Scanned: ${items.getAt(0)?.scannedOn.hour}",
-            //               style: const TextStyle(
-            //                   color: Colors.white70,
-            //                   fontSize: 14,
-            //                   fontWeight: FontWeight.w600))
-            //         ],
-            //       )
-            //     ],
-            //   ),
-            // ):
             Container(
               width: width,
               height: width * 0.37,
@@ -290,22 +236,18 @@ Widget dashboardStatus(width) {
 
 String getTimeScanned(Box<ApkHashModel> items) {
   if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inSeconds < 60){
-    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} sec ago";
+    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inSeconds} sec ago";
   }
   if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes < 60){
     return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} min's ago";
   }
   if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inHours < 24){
-    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} hour ago";
+    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inHours} hour ago";
   }
-  if(DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inDays < 60){
-    return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inMinutes} day ago";
-  }
-  return "Just Now";
+  return "${DateTime.now().difference(items.getAt(items.values.length - 1)!.scannedOn).inDays} day ago";
 }
 
 Widget dashboardOverview(width,context) {
-  LinkScanProvider provider2 = LinkScanProvider();
   return Column(
     children: [
       Container(
@@ -584,18 +526,6 @@ AppBar appBar() {
                     },
                 )
             ),
-            // Container(
-            //   alignment: Alignment.centerRight,
-            //  margin: const EdgeInsets.only(bottom: 14,left: 13),
-            //  child: Container(
-            //    width: 10,
-            //    decoration: BoxDecoration(
-            //        color: Colors.red,
-            //        borderRadius: BorderRadius.circular(20)
-            //    ),
-            //    height: 10,
-            //  ),
-            // ),
           ]
       ),
       const SizedBox(width: 15),

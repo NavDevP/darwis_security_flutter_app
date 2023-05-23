@@ -1,4 +1,4 @@
-package com.shanu.secure.cysecurity.Service;
+package com.cysecurity.darwisaf.Service;
 
 import android.app.Notification;
 import android.app.Service;
@@ -7,7 +7,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.IBinder;
 
-import com.shanu.secure.cysecurity.AppInstallReceiver;
+import com.cysecurity.darwisaf.AppInstallReceiver;
 
 public class AppInstallService extends Service {
     private AppInstallReceiver receiver;

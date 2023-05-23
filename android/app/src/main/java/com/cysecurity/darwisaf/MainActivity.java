@@ -1,12 +1,12 @@
-package com.shanu.secure.cysecurity;
+package com.cysecurity.darwisaf;
 
 import io.flutter.embedding.android.FlutterActivity;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 
-import com.shanu.secure.cysecurity.Service.AppInstallService;
-import com.shanu.secure.cysecurity.Service.AppUninstallService;
+import com.cysecurity.darwisaf.Service.AppInstallService;
+import com.cysecurity.darwisaf.Service.AppUninstallService;
 
 public class MainActivity extends FlutterActivity {
 

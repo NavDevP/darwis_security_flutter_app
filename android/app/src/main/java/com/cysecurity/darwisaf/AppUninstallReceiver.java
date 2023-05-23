@@ -1,4 +1,4 @@
-package com.shanu.secure.cysecurity;
+package com.cysecurity.darwisaf;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,7 +10,7 @@ public class AppUninstallReceiver extends BroadcastReceiver {
         System.out.println(intent.getAction());
         if (Intent.ACTION_PACKAGE_FULLY_REMOVED.equals(intent.getAction())) {
             String packageName = intent.getData().getSchemeSpecificPart();
-            Intent intent2 = new Intent("com.shanu.secure.cysecurity.AppUninstallReceiver");
+            Intent intent2 = new Intent("com.cysecurity.darwisaf.AppUninstallReceiver");
             intent2.putExtra("package", packageName);
             context.sendBroadcast(intent2);
         }
