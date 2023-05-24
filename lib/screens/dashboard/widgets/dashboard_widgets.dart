@@ -177,7 +177,7 @@ Widget dashboardStatus(width) {
                   ),
                   child: const Text("Check Report",style: TextStyle(color: Colors.white,fontSize: 16,fontWeight: FontWeight.w700),textAlign: TextAlign.center),
                 ),
-              ),onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => OverViewDetail())))
+              ),onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const OverViewDetail())))
             ]):
             Container(
               width: width,

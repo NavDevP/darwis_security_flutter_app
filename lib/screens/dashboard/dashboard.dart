@@ -2,12 +2,14 @@ import 'dart:async';
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cysecurity/const/colors.dart';
-import 'package:cysecurity/database/otp_scan/provider.dart';
 import 'package:cysecurity/database/user_auth/provider.dart';
 import 'package:cysecurity/main.dart';
+import 'package:cysecurity/providers/report_url_provider.dart';
+import 'package:cysecurity/screens/dashboard/functions/report_url.dart';
 import 'package:cysecurity/screens/profile_setting/index.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../const/variables.dart';
 import '../../database/apk_hash/provider.dart';
@@ -26,8 +28,6 @@ class _DashboadState extends State<Dashboard>{
 
   final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
 
-  TextEditingController linkTextController = TextEditingController();
-
   int _currentPermissionIndex = 0;
 
   @override
@@ -44,57 +44,112 @@ class _DashboadState extends State<Dashboard>{
   void showReport(){
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.transparent,
-          alignment: Alignment.center,
-          content: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 30,horizontal: 30),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Report",style: TextStyle(fontSize: 22,fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  const Text("Report any url here, if you think that url is spam and contain harmful contents",style: TextStyle(fontSize: 14)),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                      maxLines: 2,
-                      controller: linkTextController,
-                      decoration: InputDecoration(
-                        fillColor: Colors.black12,
-                        filled: true,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        hintText: 'Paste your link here!',
-                        hintStyle: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black54
-                        ),
-                        errorText: validateLink(linkTextController.text),
-                      )),
-                  const SizedBox(height: 20),
-                  MaterialButton(onPressed: () {
-                    Navigator.pop(context);
-                    showReportSubmitted();
-                  },
-                    minWidth: MediaQuery.of(context).size.width,
-                    color: AppColor.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    child: const Text("Submit Url",style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
-                  )
-                ],
-              )
-          ),
-          contentPadding: EdgeInsets.zero,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-        );
+      barrierDismissible: false,
+      builder: (BuildContext context1) {
+        return Consumer(
+            builder: (BuildContext context, ref, _) {
+              if (ref.watch(reportProvider).status == ReportUrlStatus.SUBMITTED) {
+                Timer.run(() => Navigator.of(context1).pop());
+                Timer.run(() => showReportSubmitted());
+              }
+              return AlertDialog(
+                backgroundColor: Colors.transparent,
+                alignment: Alignment.center,
+                content: Stack(
+                    children: [
+                      Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 30, horizontal: 30),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Report", style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 10),
+                              const Text(
+                                  "Report any url here, if you think that url is spam and contain harmful contents",
+                                  style: TextStyle(fontSize: 14)),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                  maxLines: 2,
+                                  controller: ref.read(reportProvider.notifier).linkTextController,
+                                  decoration: InputDecoration(
+                                    fillColor: Colors.black12,
+                                    filled: true,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10.0),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    hintText: 'Paste your link here!',
+                                    hintStyle: const TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.black54
+                                    ),
+                                  )),
+                              const SizedBox(height: 5),
+                              ref.watch(reportProvider).status == ReportUrlStatus.NOT_LINK ? const Text("This is not a valid link",style: TextStyle(
+                                color: Colors.red,fontSize: 14
+                              ),):const SizedBox(),
+                              ref.watch(reportProvider).status == ReportUrlStatus.ERROR ? const Text("There is some issue processing you're request",style: TextStyle(
+                                  color: Colors.red,fontSize: 14
+                              ),):const SizedBox(),
+                              const SizedBox(height: 20),
+                              MaterialButton(onPressed: () {
+                                // Navigator.pop(context);
+                                ref.read(reportProvider.notifier).processSubmit();
+                                // showReportSubmitted();
+                              },
+                                minWidth: MediaQuery
+                                    .of(context)
+                                    .size
+                                    .width,
+                                color: AppColor.primary,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 15),
+                                child: const Text(
+                                    "Submit Url", style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold)),
+                              )
+                            ],
+                          )),
+                      ref.watch(reportProvider).status == ReportUrlStatus.LOADING ? Container(
+                          width: MediaQuery
+                              .of(context)
+                              .size
+                              .width,
+                          height: MediaQuery
+                              .of(context)
+                              .size
+                              .width / 1.25,
+                          color: Colors.black26,
+                          child: const Center(child: CircularProgressIndicator(
+                            color: AppColor.primary,
+                          ),
+                          )) : const SizedBox(),
+                      GestureDetector(child: Container(
+                        width: MediaQuery
+                            .of(context)
+                            .size
+                            .width,
+                        height: MediaQuery
+                            .of(context)
+                            .size
+                            .width / 1.25,
+                        padding: const EdgeInsets.all(10),
+                        alignment: Alignment.topRight,
+                        child: const Icon(Icons.close),
+                      ),onTap: () => Navigator.pop(context)),
+                    ]),
+                contentPadding: EdgeInsets.zero,
+                insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+              );
+        });
       },
     );
   }
@@ -106,7 +161,7 @@ class _DashboadState extends State<Dashboard>{
         return AlertDialog(
           backgroundColor: Colors.transparent,
           alignment: Alignment.center,
-          content:   Container(
+          content: Container(
             // height: 200,
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -280,18 +335,6 @@ class _DashboadState extends State<Dashboard>{
                 ),
                   alignment: Alignment.center,
                   child: const Icon(Icons.person,color: AppColor.primary))),
-              // Container(
-              //   alignment: Alignment.centerRight,
-              //  margin: const EdgeInsets.only(bottom: 14,left: 13),
-              //  child: Container(
-              //    width: 10,
-              //    decoration: BoxDecoration(
-              //        color: Colors.red,
-              //        borderRadius: BorderRadius.circular(20)
-              //    ),
-              //    height: 10,
-              //  ),
-              // ),
             ]
           ),
           const SizedBox(width: 15),
@@ -341,14 +384,6 @@ class _DashboadState extends State<Dashboard>{
                                         borderRadius: BorderRadius.circular(20)
                                     ),
                                   ),
-                                // Container(
-                                //   margin: const EdgeInsets.only(left: 10),
-                                //   width: 10,height: 10,
-                                //   decoration: BoxDecoration(
-                                //       color: AppColor.primary.withOpacity(0.3),
-                                //       borderRadius: BorderRadius.circular(20)
-                                //   ),
-                                // ),
                               ],
                             ):Container(),
                             const SizedBox(height: 20),
@@ -392,94 +427,9 @@ class _DashboadState extends State<Dashboard>{
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Container(
-                //     margin: const EdgeInsets.only(left: 10,right: 10,top: 20),
-                //     decoration: BoxDecoration(
-                //         borderRadius: BorderRadius.circular(10),
-                //         color: Colors.white
-                //     ),
-                //     child: Column(
-                //       mainAxisAlignment: MainAxisAlignment.center,
-                //       children: [
-                //         Container(
-                //           decoration: const BoxDecoration(
-                //               borderRadius: BorderRadius.only(topRight: Radius.circular(10),topLeft: Radius.circular(10)),
-                //               color: Colors.black12
-                //           ),
-                //           padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
-                //           child: Row(
-                //             children: [
-                //               Image.asset("assets/images/logo/darwis_logo.png",width: 23),
-                //               const SizedBox(width: 10),
-                //               const Text("Darwis",style: TextStyle(fontSize: 16)),
-                //             ],
-                //           ),
-                //         ),
-                //         const SizedBox(height: 20),
-                //         Container(
-                //           padding: const EdgeInsets.all(10),
-                //             decoration: const BoxDecoration(
-                //               color: Colors.redAccent,
-                //               shape: BoxShape.circle
-                //             ),
-                //             child: Image.asset(
-                //             "assets/images/sheild.png",
-                //             width: 50)),
-                //         const SizedBox(height: 20),
-                //         const Text("OTP ALERT!", style: TextStyle(
-                //             color: Colors.black87,
-                //             fontSize: 24,
-                //             fontWeight: FontWeight.bold)),
-                //         const SizedBox(height: 20),
-                //         Container(
-                //           padding: const EdgeInsets.symmetric(horizontal: 25),
-                //             child: const Text("Do not share OTP with anyone until you really know", style: TextStyle(
-                //             color: Colors.red,
-                //             fontSize: 15,fontWeight: FontWeight.bold),textAlign: TextAlign.center)),
-                //         const SizedBox(height: 20),
-                //         Row(
-                //           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                //           crossAxisAlignment: CrossAxisAlignment.end,
-                //           children: [
-                //             Expanded(child: Container(
-                //                 height: 40,
-                //                 alignment: Alignment.center,
-                //                 decoration: const BoxDecoration(
-                //                   borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10)),
-                //                   color: Colors.black87
-                //                 ),
-                //                 child: const Text("Close",
-                //                   style: TextStyle(color: Colors.white)))),
-                //             Expanded(child: Container(
-                //                 height: 40,
-                //                 decoration: const BoxDecoration(
-                //                   color: Colors.red,
-                //                   borderRadius: BorderRadius.only(bottomRight: Radius.circular(10))
-                //                 ),
-                //                 alignment: Alignment.center,
-                //                 child: const Text("Okay",
-                //                   style: TextStyle(color: Colors.white)))),
-                //           ],
-                //         )
-                //       ],
-                //     )
-                // ),
-                const SizedBox(height: 20),
-                // dashboardActions(width),
               ],
             ),
           )),
-      // bottomNavigationBar: BottomNavigationBar(
-      //   elevation: 10,
-      //   backgroundColor: AppColor.primary.withOpacity(0.8),
-      //   showUnselectedLabels: false,
-      //   showSelectedLabels: false,
-      //   selectedIconTheme: const IconThemeData(color: Colors.white),
-      //   items: const [
-      //     BottomNavigationBarItem(icon: Icon(Icons.home_filled),label: ""),
-      //     BottomNavigationBarItem(icon: Icon(Icons.person),label: ""),
-      //   ],
-      // ),
     ));
   }
 

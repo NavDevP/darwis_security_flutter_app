@@ -9,6 +9,7 @@ import 'package:cysecurity/const/constants.dart';
 import 'package:cysecurity/database/apk_hash/provider.dart';
 import 'package:cysecurity/database/link_scan/model/model.dart';
 import 'package:cysecurity/database/link_scan/provider.dart';
+import 'package:cysecurity/database/user_auth/model/model.dart';
 import 'package:cysecurity/database/user_auth/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
@@ -90,15 +91,31 @@ class LinksScanFunctions {
         var verdict = jsonDecode(response.body);
         return await getVerdict(links,verdict);
       case ResponseStatus.unAuthorized:
-      // TODO: Handle this case.
-        break;
+        bool check = await refreshAndStartHashScan();
+        if(check) scanLinks();
+        return STATUS.ERROR;
       case ResponseStatus.invalidInput:
         return STATUS.ERROR;
       case ResponseStatus.rateLimit:
+        setBackgroundFileLinkScan24Hours();
         return STATUS.LIMIT_EXCEEDED;
       case ResponseStatus.internalError:
         return STATUS.ERROR;
     }
+  }
+
+  Future<bool> refreshAndStartHashScan() async {
+    UserAuthProvider provider = UserAuthProvider();
+    await provider.initializationDone;
+    final response = await http.get(Api.refreshToken,
+        headers: headers(provider.dataBox.values.first.refresh_token)
+    );
+    if(ResponseStatus.fromStatus(response.statusCode) == ResponseStatus.success){
+      var data = jsonDecode(response.body);
+      await provider.updateToken(UserAuthModel(access_token: data['access_token'], refresh_token: data['refresh_token'], signedOn: DateTime.now(), access_token_expiry_minutes: data['access_token_expiry_minutes'],refresh_token_expiry_days: data['refresh_token_expiry_days'], name: provider.dataBox.values.first.name,email: provider.dataBox.values.first.email, avatar: provider.dataBox.values.first.avatar));
+      return true;
+    }
+    return false;
   }
 
   Future getVerdict(List<LinkScanModel> links, Map verdict) async{

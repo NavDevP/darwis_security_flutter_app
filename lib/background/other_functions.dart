@@ -27,6 +27,18 @@ Future setBackgroundFileHashScan24Hours() async{
   }
 }
 
+Future setBackgroundFileLinkScan24Hours() async{
+  if (Platform.isAndroid) {
+    // One off task registration
+    await Workmanager().registerOneOffTask(
+        "oneoff-file-link-scan",
+        checkAllVerdict,
+        initialDelay: const Duration(hours: 24),
+        existingWorkPolicy: ExistingWorkPolicy.append
+    );
+  }
+}
+
 Map<String, String> headers(token) {
   return {
     HttpHeaders.contentTypeHeader: "application/json",
