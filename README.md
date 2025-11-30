@@ -1,16 +1,35 @@
-# cysecurity
 
-Security Project
+# Darwis Security App
 
-## Getting Started
+This app is designed to enhance mobile security by continuously monitoring and protecting the user’s device. It automatically scans newly installed applications in the background to detect potential malware before they can cause harm.
 
-This project is a starting point for a Flutter application.
+In addition, the app identifies suspicious or spam links found in text messages, helping users avoid phishing attempts and harmful websites.
 
-A few resources to get you started if this is your first Flutter project:
+Users also get a clear, actionable list of all detected malware-infected apps, with the option to remove them instantly—keeping their device safe, clean, and secure at all times.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Screenshots
+
+![App Screenshot](https://navalplahha.com/darwis/maindarwis.png)
+## Features
+
+- Scan for Malware containing apps
+- Scan for Spam Links
+- Alert user whenever a Spam link received in **Realtime**
+- Alert user for scam OTP messages by scanning in **Realtime**
+- Cross platform
+
+
+## Tech Stack
+
+**Client:** Flutter, Dart, Java, Hive (For data storage)
+
+**Server:** Go, Python, Redis
+
+
+## Used By
+
+This project is used by the following companies:
+
+- CySecurity
+
