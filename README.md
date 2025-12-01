@@ -25,11 +25,3 @@ Users also get a clear, actionable list of all detected malware-infected apps, w
 **Client:** Flutter, Dart, Java, Hive (For data storage)
 
 **Server:** Go, Python, Redis
-
-
-## Used By
-
-This project is used by the following companies:
-
-- CySecurity
-
